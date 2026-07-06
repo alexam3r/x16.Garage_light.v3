@@ -12,8 +12,8 @@
 #define PIN_LIGHT_EDISON   D6   // GPIO12 — декоративные лампы Эдисона (реле 2)
 #define PIN_PIR            D7   // GPIO13 — датчик движения (PIR)
 
-#define I2C_SDA            D1   // GPIO5 — I²C SDA (AM2320)
-#define I2C_SCL            D2   // GPIO4 — I²C SCL (AM2320)
+#define I2C_SDA            D2   // GPIO4 — I²C SDA (AM2320)
+#define I2C_SCL            D1   // GPIO5 — I²C SCL (AM2320)
 
 // -----------------------------------------------------------------------------
 // Реле

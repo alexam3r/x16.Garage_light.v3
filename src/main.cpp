@@ -137,17 +137,20 @@ void turnLightOn(LightSource src, LightMode mode) {
     Serial.println(timeout);
 }
 
-// Выключить свет, сбросить источник и режим на main, вернуть реакцию на PIR.
+// Выключить свет, сбросить источник и режим на main.
+// Реле гасятся напрямую (без applyMode — тот повторно зажёг бы реле режима).
+// Флаг motionEnabled НЕ трогаем: реакция на PIR управляется только motion/set.
 void turnLightOff() {
     lightState    = false;
     currentSource = SRC_NONE;
     lightOffAt    = 0;
-    motionEnabled = true;        // реакция на PIR сбрасывается вместе с режимом
-    applyMode(MODE_MAIN);
+    currentMode   = MODE_MAIN;   // режим по умолчанию (логически, без энергизации реле)
+    applyRelay(PIN_LIGHT_MAIN, false);
+    applyRelay(PIN_LIGHT_EDISON, false);
     publishLightState();
     publishModeState();
 
-    Serial.println(F("Light OFF, mode reset to main, motion enabled"));
+    Serial.println(F("Light OFF, mode reset to main"));
 }
 
 // Обнулить таймер на длительность текущего источника (PIR -> 10 мин, MQTT -> 1 ч).
