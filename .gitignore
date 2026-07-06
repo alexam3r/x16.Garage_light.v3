@@ -1,0 +1,16 @@
+CLAUDE.md
+.claude
+.remember
+
+# Секреты — не коммитить
+src/Secrets.h
+
+# PlatformIO build artifacts
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Прошивки/бинарники
+*.bin
+*.elf
+*.map
