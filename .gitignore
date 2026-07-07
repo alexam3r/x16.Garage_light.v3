@@ -9,7 +9,6 @@ src/Secrets.h
 .pio/
 .pioenvs/
 .piolibdeps/
-.vscode/
 
 # Прошивки/бинарники
 *.bin
