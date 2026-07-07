@@ -92,6 +92,7 @@ void publishAvailability(bool online);
 void publishLightState();
 void publishModeState();
 void publishMotionState();
+void publishMotionEnabledState();
 void publishStatusJson();
 
 // =============================================================================
@@ -304,8 +305,10 @@ void handleMotionSet(const char* cmd) {
     } else {
         Serial.print(F("motion/set: unknown payload: "));
         Serial.println(cmd);
+        return;
     }
-    // Флаг реакции в motion/state не эхаем; актуальное значение видно в JSON-статусе.
+    // Состояние реакции публикуем отдельным retain-топиком (без задержки статуса).
+    publishMotionEnabledState();
 }
 
 // Авто-возврат реакции на PIR: если её отключили и прошло MOTION_AUTO_ENABLE_MS,
@@ -316,6 +319,7 @@ void handleMotionTimer() {
         motionEnabled  = true;
         motionEnableAt = 0;
         Serial.println(F("Motion reaction: auto-enabled after timeout"));
+        publishMotionEnabledState();
     }
 }
 
@@ -411,6 +415,7 @@ bool connectMqtt() {
     publishLightState();
     publishModeState();
     publishMotionState();
+    publishMotionEnabledState();
     return true;
 }
 
@@ -438,6 +443,12 @@ void publishModeState() {
 void publishMotionState() {
     if (!mqtt.connected()) return;
     mqtt.publish(TOPIC_MOTION_STATE, pirStable ? PAYLOAD_ON : PAYLOAD_OFF, false);
+}
+
+// Состояние реакции на PIR — retain (HA читает мгновенно, без ожидания статуса).
+void publishMotionEnabledState() {
+    if (!mqtt.connected()) return;
+    mqtt.publish(TOPIC_MOTION_ENABLED, motionEnabled ? PAYLOAD_ON : PAYLOAD_OFF, true);
 }
 
 // JSON-статус раз в минуту: light, mode, motion, motion_enabled, temperature,

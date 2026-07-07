@@ -1,0 +1,68 @@
+# =============================================================================
+# Home Assistant — интеграция гаражного света (ESP8266) по MQTT.
+#
+# Вставьте содержимое ниже под существующий верхний ключ `mqtt:` в
+# configuration.yaml (ключ `mqtt:` в файле может быть только один — если он уже
+# есть, добавьте элементы списка -light/-select/-switch к нему).
+#
+# Все три сущности используют один блок `device` с общим identifier
+# `garage_light`, поэтому в HA они собираются в одно устройство и через
+# `suggested_area: Гараж` при создании попадают в комнату «Гараж».
+# (Комнату можно также назначить/сменить вручную: Настройки → Устройства →
+#  устройство «Гараж — свет» → Область.)
+# =============================================================================
+
+mqtt:
+  # --- Включение/отключение света ------------------------------------------
+  - light:
+      name: "Гараж — свет"
+      unique_id: garage_light_light
+      command_topic: "garage/light/light/set"
+      state_topic: "garage/light/light/state"
+      payload_on: "ON"
+      payload_off: "OFF"
+      availability:
+        - topic: "garage/light/availability"
+          payload_available: "online"
+          payload_not_available: "offline"
+      device: &garage_light_device
+        identifiers: garage_light
+        name: "Гараж — свет"
+        manufacturer: "DIY"
+        model: "ESP8266 Garage Light"
+        suggested_area: "Гараж"
+
+  # --- Переключение режима main / edison -----------------------------------
+  - select:
+      name: "Гараж — режим света"
+      unique_id: garage_light_mode
+      command_topic: "garage/light/mode/set"
+      state_topic: "garage/light/mode/state"
+      options:
+        - "main"
+        - "edison"
+      availability:
+        - topic: "garage/light/availability"
+          payload_available: "online"
+          payload_not_available: "offline"
+      icon: "mdi:lightbulb-group"
+      device: *garage_light_device
+
+  # --- Реакция на датчик движения (вкл/выкл) --------------------------------
+  # Состояние приходит отдельным retain-топиком motion/enabled — без задержки.
+  # Прошивка сама включает реакцию обратно через 6 часов после выключения.
+  - switch:
+      name: "Гараж — реакция на движение"
+      unique_id: garage_light_motion
+      command_topic: "garage/light/motion/set"
+      payload_on: "ON"
+      payload_off: "OFF"
+      state_topic: "garage/light/motion/enabled"
+      state_on: "ON"
+      state_off: "OFF"
+      availability:
+        - topic: "garage/light/availability"
+          payload_available: "online"
+          payload_not_available: "offline"
+      icon: "mdi:motion-sensor"
+      device: *garage_light_device

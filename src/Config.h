@@ -67,6 +67,7 @@
 #define TOPIC_MODE_STATE        "garage/light/mode/state"     // retain: main/edison
 #define TOPIC_MOTION_SET        "garage/light/motion/set"     // cmd: ON/OFF (enable/disable реакции)
 #define TOPIC_MOTION_STATE      "garage/light/motion/state"   // без retain: ON/OFF факт движения
+#define TOPIC_MOTION_ENABLED    "garage/light/motion/enabled" // retain: ON/OFF состояние реакции на PIR
 #define TOPIC_STATUS            "garage/light/status"         // retain: JSON раз в минуту
 
 // -----------------------------------------------------------------------------
