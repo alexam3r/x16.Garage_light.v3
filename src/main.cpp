@@ -63,6 +63,7 @@ unsigned long lastSensorRead = 0;
 unsigned long lastWifiAttempt = 0;
 unsigned long lastMqttAttempt = 0;
 unsigned long lastStatusPub   = 0;
+bool          statusDirty     = false;  // состояние изменилось — статус уйдёт немедленно
 
 // Connectivity watchdog: последний момент, когда и Wi-Fi, и MQTT были подключены.
 unsigned long lastAllOkTs     = 0;
@@ -131,6 +132,7 @@ void turnLightOn(LightSource src, LightMode mode) {
     applyMode(mode);
     publishLightState();
     publishModeState();
+    statusDirty = true;
 
     Serial.print(F("Light ON  src="));
     Serial.print(src == SRC_PIR ? F("PIR") : F("MQTT"));
@@ -152,6 +154,7 @@ void turnLightOff() {
     applyRelay(PIN_LIGHT_EDISON, false);
     publishLightState();
     publishModeState();
+    statusDirty = true;
 
     Serial.println(F("Light OFF, mode reset to main"));
 }
@@ -201,6 +204,7 @@ void pollPir() {
 
         // Факт движения публикуем всегда (развязка «наблюдение vs реакция»).
         publishMotionState();
+        statusDirty = true;
 
         // Фронт LOW -> HIGH: движение началось.
         if (!prev && pirStable) {
@@ -285,6 +289,7 @@ void handleModeSet(const char* cmd) {
         // Свет горит — переключить активный пин, таймер и источник не трогать.
         applyMode(target);
         publishModeState();
+        statusDirty = true;
         Serial.print(F("Mode switched (light on) -> "));
         Serial.println(target == MODE_MAIN ? PAYLOAD_MODE_MAIN : PAYLOAD_MODE_EDISON);
     } else {
@@ -309,6 +314,7 @@ void handleMotionSet(const char* cmd) {
     }
     // Состояние реакции публикуем отдельным retain-топиком (без задержки статуса).
     publishMotionEnabledState();
+    statusDirty = true;
 }
 
 // Авто-возврат реакции на PIR: если её отключили и прошло MOTION_AUTO_ENABLE_MS,
@@ -320,6 +326,7 @@ void handleMotionTimer() {
         motionEnableAt = 0;
         Serial.println(F("Motion reaction: auto-enabled after timeout"));
         publishMotionEnabledState();
+        statusDirty = true;
     }
 }
 
@@ -416,6 +423,7 @@ bool connectMqtt() {
     publishModeState();
     publishMotionState();
     publishMotionEnabledState();
+    statusDirty = true;   // свежий статус сразу после (пере)подключения
     return true;
 }
 
@@ -451,8 +459,8 @@ void publishMotionEnabledState() {
     mqtt.publish(TOPIC_MOTION_ENABLED, motionEnabled ? PAYLOAD_ON : PAYLOAD_OFF, true);
 }
 
-// JSON-статус раз в минуту: light, mode, motion, motion_enabled, temperature,
-// humidity, uptime, wifi_rssi.
+// JSON-статус (раз в минуту + немедленно при изменении состояния): light, mode,
+// motion, motion_enabled, temperature, humidity, uptime, wifi_rssi.
 // Сборка через dtostrf + конкатенация — без зависимости от float-printf.
 void publishStatusJson() {
     if (!mqtt.connected()) return;
@@ -587,8 +595,10 @@ void loop() {
     handleMotionTimer();
     readAm2320();
 
-    // --- Минутный JSON-статус ---
-    if (mqtt.connected() && (millis() - lastStatusPub) >= STATUS_INTERVAL_MS) {
+    // --- JSON-статус: раз в минуту либо немедленно при изменении состояния.
+    // Немедленная отправка обнуляет минутный таймер — без дублей подряд.
+    if (mqtt.connected() && (statusDirty || (millis() - lastStatusPub) >= STATUS_INTERVAL_MS)) {
+        statusDirty   = false;
         lastStatusPub = millis();
         publishStatusJson();
     }
